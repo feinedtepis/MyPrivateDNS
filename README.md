@@ -1,4 +1,4 @@
-NetShield
+
 # NetShield 🛡️
 
 A lightweight, locally hosted DNS filtering tool that blocks unwanted domains using customizable blocklists and allowlists. NetShield lets you filter DNS requests on your own machine and manage your filtering configuration through a local web interface.
