@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetShield DNS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    .twitch-scroll::-webkit-scrollbar { width: 6px; }
+    .twitch-scroll::-webkit-scrollbar-track { background: transparent; }
+    .twitch-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-screen w-screen overflow-hidden p-4 font-sans">
+
+  <!-- 6x6 Master Grid -->
+  <div class="grid grid-cols-6 grid-rows-6 gap-4 h-full w-full">
+
+    <!-- COLS 1-2, ROWS 1-6: Total Queries + Controls -->
+    <div class="col-start-1 col-span-2 row-start-1 row-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-2.5">
+            <span id="statusDot" class="h-3 w-3 rounded-full bg-emerald-400"></span>
+            <h1 class="text-xl font-bold tracking-tight">NetShield DNS</h1>
+          </div>
+          <button id="toggleBtn"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition">
+            Blocking: ON
+          </button>
+        </div>
+
+        <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total Queries</p>
+        <div id="totalCount" class="text-6xl font-extrabold text-white mt-1 tabular-nums">0</div>
+      </div>
+
+      <!-- Domain Controls -->
+      <div class="space-y-4 border-t border-slate-800 pt-4">
+        <div>
+          <label for="blockInput" class="text-xs text-slate-400 font-medium block mb-1">Block Domain</label>
+          <div class="flex gap-2">
+            <input id="blockInput" type="text" placeholder="ads.example.com"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-rose-500" />
+            <button id="blockBtn"
+              class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 rounded-lg text-xs font-semibold">
+              Block
+            </button>
+          </div>
+          <div id="blocklistPills" class="flex flex-wrap gap-1.5 mt-2 max-h-20 overflow-y-auto twitch-scroll"></div>
+        </div>
+
+        <div>
+          <label for="allowInput" class="text-xs text-slate-400 font-medium block mb-1">Allow Exception</label>
+          <div class="flex gap-2">
+            <input id="allowInput" type="text" placeholder="safe.example.com"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-sky-500" />
+            <button id="allowBtn"
+              class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 rounded-lg text-xs font-semibold">
+              Allow
+            </button>
+          </div>
+          <div id="allowlistPills" class="flex flex-wrap gap-1.5 mt-2 max-h-16 overflow-y-auto twitch-scroll"></div>
+        </div>
+
+        <button id="clearCacheBtn"
+          class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition">
+          Flush DNS Cache
+        </button>
+      </div>
+    </div>
+
+    <!-- COLS 3-4, ROWS 1-2: Blocked -->
+    <div class="col-start-3 col-span-2 row-start-1 row-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-xs uppercase tracking-wider text-rose-400 font-semibold">Blocked</span>
+        <span id="blockedPct" class="text-xs font-mono text-rose-400/80 bg-rose-500/10 px-2 py-0.5 rounded">0%</span>
+      </div>
+      <div id="blockedCount" class="text-4xl font-bold text-rose-400 tabular-nums">0</div>
+    </div>
+
+    <!-- COLS 3-4, ROWS 3-4: Forwarded -->
+    <div class="col-start-3 col-span-2 row-start-3 row-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-xs uppercase tracking-wider text-emerald-400 font-semibold">Forwarded</span>
+        <span id="resolvedPct" class="text-xs font-mono text-emerald-400/80 bg-emerald-500/10 px-2 py-0.5 rounded">0%</span>
+      </div>
+      <div id="resolvedCount" class="text-4xl font-bold text-emerald-400 tabular-nums">0</div>
+    </div>
+
+    <!-- COLS 3-4, ROWS 5-6: Cached -->
+    <div class="col-start-3 col-span-2 row-start-5 row-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+      <div class="flex items-center justify-between">
+        <span class="text-xs uppercase tracking-wider text-sky-400 font-semibold">Cached</span>
+        <span id="cachedPct" class="text-xs font-mono text-sky-400/80 bg-sky-500/10 px-2 py-0.5 rounded">0%</span>
+      </div>
+      <div id="cachedCount" class="text-4xl font-bold text-sky-400 tabular-nums">0</div>
+    </div>
+
+    <!-- COLS 5-6, ROWS 1-6: Live Query Stream -->
+    <!-- COLS 5-6, ROWS 1-3: Live Query Stream (Top Half) -->
+    <div class="col-start-5 col-span-2 row-start-1 row-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Live Query Stream</span>
+        <span id="streamStatus" class="text-[11px] font-mono text-slate-500">LIVE</span>
+      </div>
+
+      <div id="twitchFeed" class="flex-1 overflow-y-auto twitch-scroll space-y-1.5 pr-1 font-mono text-xs"></div>
+    </div>
+
+    <!-- COLS 5-6, ROWS 4-6: Blocked Domains List (Bottom Half) -->
+    <div class="col-start-5 col-span-2 row-start-4 row-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-800">
+        <span class="text-xs uppercase tracking-wider text-rose-400 font-semibold">Blocked Domains</span>
+        <span id="blockedListCount" class="text-[11px] font-mono text-slate-500">0 domains</span>
+      </div>
+
+      <div id="blockedList" class="flex-1 overflow-y-auto twitch-scroll space-y-1.5 pr-1 text-xs"></div>
+    </div>
+
+  </div>
+
+  <script src="/script.js"></script>
+</body>
+</html>
